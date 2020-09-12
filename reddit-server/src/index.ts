@@ -11,15 +11,23 @@ import { UserResolver } from "./resolvers/user";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
-
-const RedisStore = connectRedis(session);
-let redisClient = redis.createClient();
+import cors from "cors";
 
 const main = async () => {
   const orm = await MikroORM.init(microConfig);
   orm.getMigrator().up();
 
   const app = express();
+
+  const RedisStore = connectRedis(session);
+  let redisClient = redis.createClient();
+
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+    })
+  );
 
   app.use(
     session({
@@ -49,7 +57,10 @@ const main = async () => {
     context: ({ req, res }) => ({ em: orm.em, req, res }),
   });
 
-  appolloServer.applyMiddleware({ app });
+  appolloServer.applyMiddleware({
+    app,
+    cors: false,
+  });
 
   app.listen(4444, () => {
     console.log("server started on localhost:4444");
