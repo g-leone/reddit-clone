@@ -1,5 +1,8 @@
+import React from "react";
+import { NavBar } from "../components/NavBar";
+
 const Index = () => {
-  return <div>Hello world</div>;
+  return <NavBar />;
 };
 
 export default Index;
