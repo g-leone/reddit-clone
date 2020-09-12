@@ -6,7 +6,6 @@ import { Arg, Ctx, Int, Mutation, Query, Resolver } from "type-graphql";
 export class PostResolver {
   @Query(() => [Post])
   posts(@Ctx() { em }: MyContext): Promise<Post[]> {
-    console.log("yeeep");
     return em.find(Post, {});
   }
 
