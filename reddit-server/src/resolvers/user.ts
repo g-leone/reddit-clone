@@ -112,7 +112,7 @@ export class UserResolver {
     return { user };
   }
 
-  @Query(() => UserResponse)
+  @Mutation(() => UserResponse)
   async login(
     @Arg("options", () => UsernameAndPassword) options: UsernameAndPassword,
     @Ctx() { em, req }: MyContext
@@ -122,7 +122,7 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: options.username,
+            field: "username",
             message: "User name does not exist",
           },
         ],
