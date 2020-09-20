@@ -32,7 +32,9 @@ const Index = () => {
       <Flex align={"center"}>
         <Heading>Posts</Heading>
         <NextLink href="create-post">
-          <Link ml={"auto"}>Create Post</Link>
+          <Button variantColor="teal" ml={"auto"} as={Link}>
+            Create Post
+          </Button>
         </NextLink>
       </Flex>
 
@@ -43,20 +45,22 @@ const Index = () => {
         </Flex>
       ) : (
         <Stack spacing={8}>
-          {data!.posts.posts.map((p) => (
-            <Flex key={p.id} p={5} shadow="md" borderWidth="1px">
-              <Box>
-                <NextLink href="/post/[id]" as={`/post/${p.id}`}>
-                  <Link>
-                    <Heading fontSize="xl">{p.title}</Heading>
-                  </Link>
-                </NextLink>
-                <Text>author: {p.author.username}</Text>
-                <Text mt={4}>{p.textSnippet}</Text>
-              </Box>
-              <Upvote post={p} />
-            </Flex>
-          ))}
+          {data!.posts.posts.map((p) =>
+            !p ? null : (
+              <Flex key={p.id} p={5} shadow="md" borderWidth="1px">
+                <Box>
+                  <NextLink href="/post/[id]" as={`/post/${p.id}`}>
+                    <Link>
+                      <Heading fontSize="xl">{p.title}</Heading>
+                    </Link>
+                  </NextLink>
+                  <Text>author: {p.author.username}</Text>
+                  <Text mt={4}>{p.textSnippet}</Text>
+                </Box>
+                <Upvote post={p} />
+              </Flex>
+            )
+          )}
         </Stack>
       )}
       {data && data.posts.hasMore && (

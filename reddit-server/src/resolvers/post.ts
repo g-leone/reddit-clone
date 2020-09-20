@@ -17,6 +17,7 @@ import { MyContext } from "../types";
 import { isAuth } from "../middleware/isAuth";
 import { getConnection } from "typeorm";
 import { Upvote } from "../entities/UpVote";
+import { User } from "../entities/User";
 
 @InputType()
 class PostInput {
@@ -39,6 +40,11 @@ export class PostResolver {
   @FieldResolver(() => String)
   textSnippet(@Root() root: Post) {
     return root.text.slice(0, 100) + (root.text.length > 100 ? "..." : "");
+  }
+
+  @FieldResolver(() => String)
+  author(@Root() post: Post, @Ctx() { userLoader }: MyContext) {
+    return userLoader.load(post.authorId);
   }
 
   @Mutation(() => Boolean)
@@ -123,20 +129,12 @@ export class PostResolver {
     const posts = await getConnection().query(
       `
       select p.*,
-      json_build_object(
-        'id', u.id,
-        'username', u.username,
-        'email', u.email,
-        'createdAt', u."createdAt",
-        'updatedAt', u."updatedAt"
-      ) author,
       ${
         req.session.userId
           ? `(select value from upvote where "userId" = $2 and "postId" = p.id) "voteStatus"`
           : `null as "voteStatus"`
       }
       from post p
-      inner join public.user u on u.id = p."authorId"
       ${cursor ? `where p."createdAt" < $${cursorIndex}` : ``}
       order by p."createdAt" DESC
       limit $1
@@ -152,7 +150,7 @@ export class PostResolver {
 
   @Query(() => Post, { nullable: true })
   post(@Arg("id", () => Int) id: number): Promise<Post | undefined> {
-    return Post.findOne(id, { relations: ["author"] });
+    return Post.findOne(id);
   }
 
   @Mutation(() => Post)
@@ -168,23 +166,41 @@ export class PostResolver {
   }
 
   @Mutation(() => Post, { nullable: true })
+  @UseMiddleware(isAuth)
   async updatePost(
     @Arg("id", () => Int) id: number,
-    @Arg("title", () => String) title: string
-  ): Promise<Post | undefined> {
-    const post = await Post.findOne({ id });
-    if (post) {
-      if (typeof title !== "undefined") {
-        post.title = title;
-        Post.update({ id }, { title });
-      }
-    }
-    return post;
+    @Arg("title", () => String) title: string,
+    @Arg("text", () => String) text: string,
+    @Ctx() { req }: MyContext
+  ): Promise<Post | null> {
+    const result = await getConnection()
+      .createQueryBuilder()
+      .update(Post)
+      .set({ title, text })
+      .where('id = :id and "authorId" = :authorId', {
+        id,
+        authorId: req.session.userId,
+      })
+      .returning("*")
+      .execute();
+    return result.raw[0];
   }
 
   @Mutation(() => Boolean)
-  async deletePost(@Arg("id", () => Int) id: number): Promise<boolean> {
-    await Post.delete(id);
+  @UseMiddleware(isAuth)
+  async deletePost(
+    @Arg("id", () => Int) id: number,
+    @Ctx() { req }: MyContext
+  ): Promise<boolean> {
+    const post = await Post.findOne(id);
+    if (!post) {
+      return false;
+    }
+    if (post.authorId !== req.session.userId) {
+      throw new Error("not authorized");
+    }
+    await Upvote.delete({ postId: id });
+    await Post.delete({ id });
     return true;
   }
 }

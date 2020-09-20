@@ -50,6 +50,6 @@ export class Post extends BaseEntity {
   @ManyToOne(() => User, (user) => user.posts)
   author: User;
 
-  @OneToMany(() => Upvote, (upvote) => upvote.user)
+  @OneToMany(() => Upvote, (upvote) => upvote.post)
   upvotes: Upvote[];
 }
